@@ -1,0 +1,29 @@
+{
+  "index_patterns": ["rewards-api-*"],
+  "template": {
+    "settings": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0,
+      "index.lifecycle.name": "rewards-api-week"
+    },
+    "mappings": {
+      "properties": {
+        "@timestamp": { "type": "date" },
+        "requestId": { "type": "keyword" },
+        "action": { "type": "keyword" },
+        "method": { "type": "keyword" },
+        "route": { "type": "keyword" },
+        "outcome": { "type": "keyword" },
+        "httpStatus": { "type": "integer" },
+        "durationMs": { "type": "long" },
+        "userId": { "type": "long" },
+        "rewardId": { "type": "long" },
+        "grantId": { "type": "keyword" },
+        "grantStatus": { "type": "keyword" },
+        "expiresAt": { "type": "date" },
+        "errorCode": { "type": "keyword" },
+        "reason": { "type": "text" }
+      }
+    }
+  }
+}

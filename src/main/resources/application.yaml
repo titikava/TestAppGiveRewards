@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: rewards-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/rewards}
+    username: ${DB_USER:rewards}
+    password: ${DB_PASSWORD}
+  jackson:
+    mapper:
+      allow-coercion-of-scalars: false
+    deserialization:
+      accept-float-as-int: false
+      fail-on-unknown-properties: true
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+rewards:
+  admin-password: ${ADMIN_PASSWORD}
+logging:
+  structured:
+    format:
+      console: ecs
+      file: ecs
+  logback:
+    rollingpolicy:
+      file-name-pattern: "${logging.file.name:api.json}.%d{yyyy-MM-dd}.%i.json"
+      max-file-size: 10MB
+      max-history: 7
+      total-size-cap: 100MB

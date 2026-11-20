@@ -1,0 +1,640 @@
+{
+  "info": {
+    "name": "Rewards API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Локальный стенд наград. После запуска API выполни папки по порядку или запусти всю коллекцию через Run collection. Каждый прогон создаёт нового пользователя и награду. Адрес и локальные пароли можно изменить в Variables. ID, email и ключ повтора заполняются автоматически."
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      {
+        "key": "username",
+        "value": "{{adminLogin}}",
+        "type": "string"
+      },
+      {
+        "key": "password",
+        "value": "{{adminPassword}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "adminLogin",
+      "value": "admin",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "local-admin-pass",
+      "type": "string"
+    },
+    {
+      "key": "userPassword",
+      "value": "practice-pass",
+      "type": "string"
+    },
+    {
+      "key": "validitySeconds",
+      "value": "604800",
+      "type": "string"
+    },
+    {
+      "key": "userEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rewardId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "grantId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "idempotencyKey",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Подключение",
+      "item": [
+        {
+          "name": "Проверить готовность API",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "actuator",
+                "health"
+              ]
+            },
+            "description": "Ожидается HTTP 200 и статус UP.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Пользователи",
+      "item": [
+        {
+          "name": "Создать пользователя",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users"
+              ]
+            },
+            "description": "Администратор создаёт пользователя с уникальным email. Коллекция сохраняет его ID и email для входа.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Пользователь Postman\",\n  \"email\": \"qa-{{$guid}}@example.test\",\n  \"password\": \"{{userPassword}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const result = pm.response.json();",
+                  "    pm.collectionVariables.set(\"userId\", result.id);",
+                  "    pm.collectionVariables.set(\"userEmail\", result.email);",
+                  "    pm.collectionVariables.set(\"grantId\", \"\");",
+                  "    pm.collectionVariables.set(\"idempotencyKey\", pm.variables.replaceIn(\"{{$guid}}\"));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Получить свой профиль",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "{{userId}}"
+              ]
+            },
+            "description": "Вход с email и паролем созданного пользователя.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{userEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{userPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Каталог наград",
+      "item": [
+        {
+          "name": "Создать награду",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rewards",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rewards"
+              ]
+            },
+            "description": "Администратор создаёт награду с уникальным кодом. Срок задаётся переменной validitySeconds.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"WELCOME_{{codeSuffix}}\",\n  \"name\": \"Бонус за регистрацию\",\n  \"description\": \"Приветственная награда\",\n  \"active\": true,\n  \"validitySeconds\": {{validitySeconds}},\n  \"issuanceLimit\": 3\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const guid = pm.variables.replaceIn(\"{{$guid}}\");",
+                  "pm.variables.set(\"codeSuffix\", guid.replace(/-/g, \"\").toUpperCase());"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const result = pm.response.json();",
+                  "    pm.collectionVariables.set(\"rewardId\", result.id);",
+                  "    pm.collectionVariables.set(\"grantId\", \"\");",
+                  "    pm.collectionVariables.set(\"idempotencyKey\", pm.variables.replaceIn(\"{{$guid}}\"));",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Редактировать награду",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rewards/{{rewardId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rewards",
+                "{{rewardId}}"
+              ]
+            },
+            "description": "Администратор меняет название и лимит. Код награды сохраняется.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Бонус участника\",\n  \"description\": \"Приветственная награда\",\n  \"active\": true,\n  \"validitySeconds\": {{validitySeconds}},\n  \"issuanceLimit\": 5\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Получить награду по ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rewards/{{rewardId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rewards",
+                "{{rewardId}}"
+              ]
+            },
+            "description": "Пользователь читает обновлённую карточку награды.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{userEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{userPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Список активных наград",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rewards?active=true&page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rewards"
+              ],
+              "query": [
+                {
+                  "key": "active",
+                  "value": "true"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "В Params можно изменить фильтр активности, номер и размер страницы.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{userEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{userPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Выдача и использование",
+      "item": [
+        {
+          "name": "Выдать награду",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/grants",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "grants"
+              ]
+            },
+            "description": "Администратор выдаёт награду. Ключ сохраняется для повторной отправки.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{userId}},\n  \"rewardId\": {{rewardId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const result = pm.response.json();",
+                  "    pm.collectionVariables.set(\"grantId\", result.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Мои активные награды",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{userId}}/grants?status=ACTIVE&page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "{{userId}}",
+                "grants"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Владелец смотрит активные выдачи. Для просмотра просроченных укажи EXPIRED в Params.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{userEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{userPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Получатели награды",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/rewards/{{rewardId}}/grants?page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "rewards",
+                "{{rewardId}}",
+                "grants"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "ACTIVE",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Администратор получает список выдач с ID пользователей. При необходимости включи фильтр status."
+          }
+        },
+        {
+          "name": "Использовать награду",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{userId}}/grants/{{grantId}}/use",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "{{userId}}",
+                "grants",
+                "{{grantId}}",
+                "use"
+              ]
+            },
+            "description": "Владелец использует свою выдачу. В успешном ответе статус USED.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{userEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{userPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Мои использованные награды",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/users/{{userId}}/grants?status=USED&page=0&size=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "users",
+                "{{userId}}",
+                "grants"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "USED"
+                },
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Владелец читает текущее состояние выдачи после использования.",
+            "auth": {
+              "type": "basic",
+              "basic": [
+                {
+                  "key": "username",
+                  "value": "{{userEmail}}",
+                  "type": "string"
+                },
+                {
+                  "key": "password",
+                  "value": "{{userPassword}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Повторить выдачу с тем же ключом",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{idempotencyKey}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/grants",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "grants"
+              ]
+            },
+            "description": "Повтор исходного запроса. API вернёт 201 и исходную квитанцию с тем же ID и статусом ACTIVE. В истории пользователя выдача имеет статус USED.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": {{userId}},\n  \"rewardId\": {{rewardId}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

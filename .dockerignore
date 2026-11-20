@@ -1,0 +1,11 @@
+**
+!gradle/
+!gradle/wrapper/
+!gradle/wrapper/**
+!gradlew
+!*gradle.kts
+!api-tests/
+!api-tests/build.gradle.kts
+!src/
+!src/main/
+!src/main/**

@@ -1,4 +1,6 @@
-plugins { java }
+plugins { java
+    id("io.qameta.allure") version "4.3.1"
+}
 
 repositories { mavenCentral() }
 
